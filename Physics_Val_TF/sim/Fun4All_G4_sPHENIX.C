@@ -28,6 +28,7 @@
 
 #include <Trkr_Diagnostics.C>
 #include <G4_User.C>
+#include <KFParticle_selections.h>
 #include <QA.C>
 
 #include <ffamodules/FlagHandler.h>
@@ -49,8 +50,6 @@
 #include <phpythia8/PHPy8ParticleTrigger.h>
 #include <decayfinder/DecayFinder.h>
 #include <hftrackefficiency/HFTrackEfficiency.h>
-
-#include "HF_Selections.C"
 
 R__LOAD_LIBRARY(libfun4all.so)
 R__LOAD_LIBRARY(libffamodules.so)
@@ -942,14 +941,6 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
     // the ntuple file is for diagnostics, it is produced only if the flag is set in G4_Tracking.C
     if (G4TRACKING::filter_conversion_electrons)
         Filter_Conversion_Electrons(outputroot + "_secvert_ntuple.root");
-
-    //======================
-    // Run KFParticle on evt
-    //======================
-    if (Enable::KFPARTICLE && Input::UPSILON)
-        KFParticle_Upsilon_Reco();
-    if (Enable::KFPARTICLE && Input::DZERO)
-        KFParticle_D0_Reco();
 
     //----------------------
     // Standard QAs
