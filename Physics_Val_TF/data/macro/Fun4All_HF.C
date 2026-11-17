@@ -4,7 +4,7 @@
 #include <G4_Magnet.C>
 #include <G4_Mbd.C>
 #include <GlobalVariables.C>
-#include <KFParticle_selections.h>
+#include <KFParticle_selections.C>
 #include <Trkr_Clustering.C>
 #include <Trkr_LaserClustering.C>
 #include <Trkr_Reco.C>
@@ -39,12 +39,9 @@
 
 #include <caloreco/RawClusterBuilderTemplate.h>
 
-#include <kfparticle_sphenix/KFParticle_sPHENIX.h>
 #include <nnscalemap/nnscalemap.h>
 
 #include <stdio.h>
-
-using namespace KFPARTICLE;
 
 R__LOAD_LIBRARY(libfun4all.so)
 R__LOAD_LIBRARY(libffamodules.so)

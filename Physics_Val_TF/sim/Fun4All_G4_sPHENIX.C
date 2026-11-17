@@ -14,7 +14,6 @@
 #include <G4_HIJetReco.C>
 #include <G4_Input.C>
 #include <G4_Jets.C>
-#include <G4_KFParticle.C>
 #include <G4_ParticleFlow.C>
 #include <G4_Production.C>
 #include <G4_TopoClusterReco.C>
@@ -28,7 +27,7 @@
 
 #include <Trkr_Diagnostics.C>
 #include <G4_User.C>
-#include <KFParticle_selections.h>
+#include <KFParticle_selections.C>
 #include <QA.C>
 
 #include <ffamodules/FlagHandler.h>
@@ -53,9 +52,62 @@
 
 R__LOAD_LIBRARY(libfun4all.so)
 R__LOAD_LIBRARY(libffamodules.so)
+R__LOAD_LIBRARY(libdecayfinder.so)
+R__LOAD_LIBRARY(libhftrackefficiency.so)
 
 // For HepMC Hijing
 // try inputFile = /sphenix/sim/sim01/sphnxpro/sHijing_HepMC/sHijing_0-12fm.dat
+
+// Loose selections for the simulation validation.
+// The data and production selections in KFParticle_selections.C are not touched: the KFPARTICLE variables are only
+// overridden here, in this process, which reconstructs a single channel. The efficiency studies apply their selections offline.
+void set_sim_loose_selections(const std::string &prefix)
+{
+  // Truth matching and the track map written by HFTrackEfficiency
+  KFPARTICLE::do_truth_matching = true;
+  KFPARTICLE::track_map_name = "HFSelected_SvtxTrackMap";
+
+  // Variables shared by every channel
+  KFPARTICLE::unused_cuts_setMotherPV_DCA_StdDev = 1000;
+  KFPARTICLE::unused_cuts_setMaximumTrackchi2nDOF = 1000;
+  KFPARTICLE::unused_cuts_setMaximumDaughterDCA_XY = 100;
+  KFPARTICLE::unused_cuts_setDecayLengthRange_XY_min = -10000;
+
+  // Light flavor channels (K_S0)
+  KFPARTICLE::lf_cuts_setMinDIRA = -1.1;
+  KFPARTICLE::lf_cuts_setDecayLengthRange_min = -0.1;
+  KFPARTICLE::lf_cuts_setMinimumTrackPV_DCA = -1.;
+  KFPARTICLE::lf_cuts_setMinimumTrackPV_DCA_XY = -1000;
+  KFPARTICLE::lf_cuts_setMinTPChits = 5;
+  KFPARTICLE::lf_cuts_setMaximumVertexchi2nDOF = 200;
+  KFPARTICLE::lf_cuts_setMaximumDaughterDCA = 100;
+
+  // Heavy flavor channels (D0, D+, Ds+, Lambda_c+)
+  KFPARTICLE::hf_min_dira = -1.1;
+  KFPARTICLE::hf_min_flight_distance = -0.1;
+  KFPARTICLE::Lc_min_flight_distance = -0.1;
+  KFPARTICLE::hf_mother_PV_DCA = FLT_MAX;
+  KFPARTICLE::hf_daughter_PV_DCA = -1.;
+  KFPARTICLE::hf_daughter_PV_DCA_XY = -1000;
+  KFPARTICLE::hf_track_to_track_DCA = 100;
+  KFPARTICLE::hf_pT = 0.;
+  KFPARTICLE::hf_max_track_chi2nDOF = 1000;
+  KFPARTICLE::hf_max_vertex_chi2nDOF = 200;
+  KFPARTICLE::hf_max_daughter_DCA_XY = 100;
+  KFPARTICLE::hf_min_MVTX_hits = 0;
+  KFPARTICLE::hf_min_INTT_hits = 0;
+  KFPARTICLE::hf_min_TPC_hits = 5;
+
+  // Ds+ is reconstructed through the phi intermediate in simulation, with no decay length or time requirement
+  if (prefix == "D2KKpi")
+  {
+    KFPARTICLE::KKpi_use_phi_intermediate = true;
+    KFPARTICLE::hf_min_flight_distance = -FLT_MAX;
+    KFPARTICLE::unused_cuts_setDecayLengthRange_XY_min = -FLT_MAX;
+    KFPARTICLE::unused_cuts_setDecayTimeRange_XY_min = -FLT_MAX;
+    KFPARTICLE::unused_cuts_setDecayTimeRange_min = -FLT_MAX;
+  }
+}
 
 int Fun4All_G4_sPHENIX(const int nEvents = 10,                                                                                                                         //
                        const string &inputFile = "https://www.phenix.bnl.gov/WWW/publish/phnxbld/sPHENIX/files/sPHENIX_G4Hits_sHijing_9-11fm_00000_00010.root",        //
@@ -203,10 +255,6 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
       EVTGENDECAYER::DecayFile = "decFiles/Lc2pKpi.DEC";
       particleID = 4122;
     }
-    else if (prefix == "MinBias")
-    {
-        PYTHIA8::config_file[0] = "steeringCards/pythia8_Detroit.cfg";
-    }
 
     //-----------------
     // Initialize the selected Input/Event generation
@@ -322,16 +370,13 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
     p8_hf_signal_trigger->SetEtaHighLow(1.3, -1.3);     // sample a rapidity range higher than the sPHENIX tracking pseudorapidity
     p8_hf_signal_trigger->SetStableParticleOnly(false); // process unstable particles that include quarks
     p8_hf_signal_trigger->PrintConfig();
-    if (prefix != "MinBias")
-    {
-        p8_hf_signal_trigger->AddParticles(particleID);
-        p8_hf_signal_trigger->AddParticles(-1 * particleID);
-        INPUTGENERATOR::Pythia8[0]->register_trigger(p8_hf_signal_trigger);
-        INPUTGENERATOR::Pythia8[0]->set_trigger_OR();
+    p8_hf_signal_trigger->AddParticles(particleID);
+    p8_hf_signal_trigger->AddParticles(-1 * particleID);
+    INPUTGENERATOR::Pythia8[0]->register_trigger(p8_hf_signal_trigger);
+    INPUTGENERATOR::Pythia8[0]->set_trigger_OR();
 
-        // ! Nominal collision geometry is selected by Input::BEAM_CONFIGURATION
-        // Input::ApplysPHENIXBeamParameter(INPUTGENERATOR::Pythia8);
-    }
+    // ! Nominal collision geometry is selected by Input::BEAM_CONFIGURATION
+    // Input::ApplysPHENIXBeamParameter(INPUTGENERATOR::Pythia8);
 
     InputRegister();
 
@@ -374,39 +419,36 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
     Enable::QA = true;
 
     // Heavy-flavor simulation setup
-    if (prefix != "MinBias")
+    DecayFinder *myFinder = new DecayFinder("myFinder");
+    myFinder->Verbosity(1);
+    if (prefix == "Kshort2pipi")
     {
-        DecayFinder *myFinder = new DecayFinder("myFinder");
-        myFinder->Verbosity(1);
-        if (prefix == "Kshort2pipi")
-        {
-            myFinder->setDecayDescriptor("K_S0 -> pi^- pi^+");
-        }
-        else if (prefix == "D2Kpi")
-        {
-            myFinder->setDecayDescriptor("[D0 -> K^- pi^+]cc");
-        }
-        else if (prefix == "D2Kpipi") // D+
-        {
-          myFinder->setDecayDescriptor("[D+ -> K^- pi^+ pi^+]cc");
-        }
-        else if (prefix == "D2KKpi") // D_s
-        {
-          myFinder->setDecayDescriptor("[D_s+ -> {phi -> K^+ K^-} pi^+]cc");
-        }
-        else if (prefix == "Lc2pKpi") // L_c
-        {
-          myFinder->setDecayDescriptor("[Lambda_c+ -> proton^+ K^- pi^+]cc");
-        }
-        myFinder->saveDST(1);
-        myFinder->allowPi0(1);
-        myFinder->allowPhotons(1);
-        myFinder->triggerOnDecay(1);
-        myFinder->setPTmin(0.0);          // Note: sPHENIX min pT is 0.2 GeV for tracking
-        myFinder->setEtaRange(-1.3, 1.3); // Note: sPHENIX acceptance is |eta| <= 1.1
-        myFinder->useDecaySpecificEtaRange(false);
-        se->registerSubsystem(myFinder);
+        myFinder->setDecayDescriptor("K_S0 -> pi^- pi^+");
     }
+    if (prefix == "D2Kpi")
+    {
+        myFinder->setDecayDescriptor("[D0 -> K^- pi^+]cc");
+    }
+    if (prefix == "D2Kpipi") // D+
+    {
+      myFinder->setDecayDescriptor("[D+ -> K^- pi^+ pi^+]cc");
+    }
+    if (prefix == "D2KKpi") // D_s
+    {
+      myFinder->setDecayDescriptor("[D_s+ -> {phi -> K^+ K^-} pi^+]cc");
+    }
+    if (prefix == "Lc2pKpi") // L_c
+    {
+      myFinder->setDecayDescriptor("[Lambda_c+ -> proton^+ K^- pi^+]cc");
+    }
+    myFinder->saveDST(1);
+    myFinder->allowPi0(1);
+    myFinder->allowPhotons(1);
+    myFinder->triggerOnDecay(1);
+    myFinder->setPTmin(0.0);          // Note: sPHENIX min pT is 0.2 GeV for tracking
+    myFinder->setEtaRange(-1.3, 1.3); // Note: sPHENIX acceptance is |eta| <= 1.1
+    myFinder->useDecaySpecificEtaRange(false);
+    se->registerSubsystem(myFinder);
 
     // Heavy-flavor simulation setup
     Enable::MVTX_APPLYMISALIGNMENT = true;
@@ -526,11 +568,6 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
     Enable::PLUGDOOR_ABSORBER = true;
 
     // Enable::GLOBAL_FASTSIM = true;
-
-    // Enable::KFPARTICLE = true;
-    // Enable::KFPARTICLE_VERBOSITY = 1;
-    // Enable::KFPARTICLE_TRUTH_MATCH = true;
-    // Enable::KFPARTICLE_SAVE_NTUPLE = true;
 
     Enable::CALOTRIGGER = Enable::CEMC_TOWER && Enable::HCALIN_TOWER && Enable::HCALOUT_TOWER && false;
 
@@ -774,6 +811,7 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
 
     output_dir = outdir; // Top dir of where the output nTuples will be written
     trailer = "_" + processID + ".root";
+    set_sim_loose_selections(prefix);
     if (prefix == "Kshort2pipi")
     {
         create_hf_directories(pipi_reconstruction_name, pipi_output_dir, pipi_output_reco_file);
@@ -794,7 +832,7 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
         init_kfp_dependencies();
         reconstruct_pipi_mass();
     }
-    else if (prefix == "D2Kpi")
+    if (prefix == "D2Kpi")
     {
         create_hf_directories(Kpi_reconstruction_name, Kpi_output_dir, Kpi_output_reco_file);
 
@@ -814,7 +852,7 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
         init_kfp_dependencies();
         reconstruct_Kpi_mass();
     }
-    else if (prefix == "D2Kpipi") // D+
+    if (prefix == "D2Kpipi") // D+
     {
       create_hf_directories(Kpipi_reconstruction_name, Kpipi_output_dir, Kpipi_output_reco_file);
 
@@ -834,7 +872,7 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
       init_kfp_dependencies();
       reconstruct_Kpipi_mass();
     }
-    else if (prefix == "D2KKpi") // D_s
+    if (prefix == "D2KKpi") // D_s
     {
       create_hf_directories(KKpi_reconstruction_name, KKpi_output_dir, KKpi_output_reco_file);
 
@@ -854,7 +892,7 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
       init_kfp_dependencies();
       reconstruct_KKpi_mass();
     }
-    else if (prefix == "Lc2pKpi") // Lambda_c
+    if (prefix == "Lc2pKpi") // Lambda_c
     {
       create_hf_directories(pKpi_reconstruction_name, pKpi_output_dir, pKpi_output_reco_file);
 
@@ -873,15 +911,6 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
 
       init_kfp_dependencies();
       reconstruct_pKpi_mass();
-    }
-    else if (prefix == "MinBias")
-    {
-        create_hf_directories(mb_reconstruction_name, mb_output_dir, mb_output_reco_file);
-        std::cout << "mb_reconstruction_name: " << mb_reconstruction_name << std::endl;
-        std::cout << "mb_output_dir: " << mb_output_dir << std::endl;
-        std::cout << "mb_output_reco_file: " << mb_output_reco_file << std::endl;
-        init_kfp_dependencies();
-        reconstruct_mb_mass();
     }
 
     if (Enable::TRACKING_EVAL)
@@ -911,11 +940,6 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
         {
             system(("mkdir -p " + pKpi_output_dir + "/" + dir_eval).c_str());
             Tracking_Eval(Form("%s/%s/outputTrackingEval_%s_%s.root", pKpi_output_dir.c_str(), dir_eval.c_str(), prefix.c_str(), processID.c_str()));
-        }
-        else if (prefix == "MinBias")
-        {
-            system(("mkdir -p " + mb_output_dir + "/" + dir_eval).c_str());
-            Tracking_Eval(Form("%s/%s/outputTrackingEval_%s_%s.root", mb_output_dir.c_str(), dir_eval.c_str(), prefix.c_str(), processID.c_str()));
         }
     }
 
@@ -994,34 +1018,28 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
             system(("mkdir -p " + pipi_output_dir + "/DST").c_str());
             std::cout << "Final DST output file: " << FullOutFile << std::endl;
         }
-        else if (prefix == "D2Kpi")
+        if (prefix == "D2Kpi")
         {
             FullOutFile = Kpi_output_dir + "/DST/" + prefix + "_DST_" + processID + ".root";
             system(("mkdir -p " + Kpi_output_dir + "/DST").c_str());
             std::cout << "Final DST output file: " << FullOutFile << std::endl;
         }
-        else if (prefix == "D2Kpipi")
+        if (prefix == "D2Kpipi")
         {
             FullOutFile = Kpipi_output_dir + "/DST/" + prefix + "_DST_" + processID + ".root";
             system(("mkdir -p " + Kpipi_output_dir + "/DST").c_str());
             std::cout << "Final DST output file: " << FullOutFile << std::endl;
         }
-        else if (prefix == "D2KKpi")
+        if (prefix == "D2KKpi")
         {
             FullOutFile = KKpi_output_dir + "/DST/" + prefix + "_DST_" + processID + ".root";
             system(("mkdir -p " + KKpi_output_dir + "/DST").c_str());
             std::cout << "Final DST output file: " << FullOutFile << std::endl;
         }
-        else if (prefix == "Lc2pKpi")
+        if (prefix == "Lc2pKpi")
         {
             FullOutFile = pKpi_output_dir + "/DST/" + prefix + "_DST_" + processID + ".root";
             system(("mkdir -p " + pKpi_output_dir + "/DST").c_str());
-            std::cout << "Final DST output file: " << FullOutFile << std::endl;
-        }
-        else if (prefix == "MinBias")
-        {
-            FullOutFile = mb_output_dir + "/DST/" + prefix + "_DST_" + processID + ".root";
-            system(("mkdir -p " + mb_output_dir + "/DST").c_str());
             std::cout << "Final DST output file: " << FullOutFile << std::endl;
         }
         Fun4AllDstOutputManager *out = new Fun4AllDstOutputManager("DSTOUT", FullOutFile);
@@ -1096,30 +1114,6 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
     if (Enable::QA)
     {
         std::string output_dir_QA = "./qaOut"; // default
-        if (prefix == "Kshort2pipi")
-        {
-            output_dir_QA = pipi_output_dir + "/qaOut";
-        }
-        else if (prefix == "D2Kpi")
-        {
-            output_dir_QA = Kpi_output_dir + "/qaOut";
-        }
-        else if (prefix == "D2Kpipi")
-        {
-            output_dir_QA = Kpipi_output_dir + "/qaOut";
-        }
-        else if (prefix == "D2KKpi")
-        {
-            output_dir_QA = KKpi_output_dir + "/qaOut";
-        }
-        else if (prefix == "Lc2pKpi")
-        {
-            output_dir_QA = pKpi_output_dir + "/qaOut";
-        }
-        else if (prefix == "MinBias")
-        {
-            output_dir_QA = mb_output_dir + "/qaOut";
-        }
         std::string makeDirectory = "mkdir -p " + output_dir_QA;
         system(makeDirectory.c_str());
         QA_Output(output_dir_QA + "/qaHists" + trailer);
@@ -1136,27 +1130,21 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
     {
         end_kfparticle(pipi_output_reco_file, pipi_output_dir);
     }
-    else if (prefix == "D2Kpi")
+    if (prefix == "D2Kpi")
     {
         end_kfparticle(Kpi_output_reco_file, Kpi_output_dir);
     }
-    else if (prefix == "D2Kpipi") // D+
+    if (prefix == "D2Kpipi") // D+
     {
       end_kfparticle(Kpipi_output_reco_file, Kpipi_output_dir);
     }
-    else if (prefix == "D2KKpi") // D_s
+    if (prefix == "D2KKpi") // D_s
     {
       end_kfparticle(KKpi_output_reco_file, KKpi_output_dir);
     }
-    else if (prefix == "Lc2pKpi") // Lambda_c
+    if (prefix == "Lc2pKpi") // Lambda_c
     {
       end_kfparticle(pKpi_output_reco_file, pKpi_output_dir);
-    }
-    else if (prefix == "MinBias")
-    {
-        std::cout << "mb_output_reco_file: " << mb_output_reco_file << std::endl;
-        std::cout << "mb_output_dir: " << mb_output_dir << std::endl;
-        end_kfparticle(mb_output_reco_file, mb_output_dir);
     }
 
     std::cout << "All done" << std::endl;
