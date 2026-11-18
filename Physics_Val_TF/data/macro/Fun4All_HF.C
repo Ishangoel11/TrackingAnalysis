@@ -51,8 +51,6 @@ R__LOAD_LIBRARY(libPHGarfield.so)
 R__LOAD_LIBRARY(libtpctrackreco.so)
 R__LOAD_LIBRARY(libNNScaleMap.so)
 
-using namespace KFPARTICLE;
-
 bool IsListFile = false;
 bool IsDstFile = false;
 bool DoUnpacking = false;
@@ -115,6 +113,8 @@ void Fun4All_HF(const int nEvents = 500,
                 const int nSkip = 0,
                 const bool convertSeeds = false)
 {
+  using namespace KFPARTICLE;
+
   auto se = Fun4AllServer::instance();
   se->Verbosity(1);
   // se->VerbosityDownscale(500);
