@@ -496,6 +496,8 @@ void Fun4All_HF(const int nEvents = 500,
 
   output_dir = outDir;
 
+  get_detector_info = true;
+
   if (run_pipi_reco) create_hf_directories(pipi_reconstruction_name, pipi_output_dir, pipi_output_reco_file);
   if (run_KK_reco) create_hf_directories(KK_reconstruction_name, KK_output_dir, KK_output_reco_file);
   if (run_ppi_reco) create_hf_directories(ppi_reconstruction_name, ppi_output_dir, ppi_output_reco_file);

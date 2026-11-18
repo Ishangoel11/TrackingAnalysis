@@ -814,6 +814,7 @@ int Fun4All_G4_sPHENIX(const int nEvents = 10,                                  
     output_dir = outdir; // Top dir of where the output nTuples will be written
     trailer = "_" + processID + ".root";
     set_sim_loose_selections(prefix);
+    get_detector_info = true;
     if (prefix == "Kshort2pipi")
     {
         create_hf_directories(pipi_reconstruction_name, pipi_output_dir, pipi_output_reco_file);
