@@ -51,6 +51,8 @@ R__LOAD_LIBRARY(libPHGarfield.so)
 R__LOAD_LIBRARY(libtpctrackreco.so)
 R__LOAD_LIBRARY(libNNScaleMap.so)
 
+using namespace KFPARTICLE;
+
 bool IsListFile = false;
 bool IsDstFile = false;
 bool DoUnpacking = false;

@@ -55,6 +55,8 @@ R__LOAD_LIBRARY(libffamodules.so)
 R__LOAD_LIBRARY(libdecayfinder.so)
 R__LOAD_LIBRARY(libhftrackefficiency.so)
 
+using namespace KFPARTICLE;
+
 // For HepMC Hijing
 // try inputFile = /sphenix/sim/sim01/sphnxpro/sHijing_HepMC/sHijing_0-12fm.dat
 
@@ -64,48 +66,48 @@ R__LOAD_LIBRARY(libhftrackefficiency.so)
 void set_sim_loose_selections(const std::string &prefix)
 {
   // Truth matching and the track map written by HFTrackEfficiency
-  KFPARTICLE::do_truth_matching = true;
-  KFPARTICLE::track_map_name = "HFSelected_SvtxTrackMap";
+  do_truth_matching = true;
+  track_map_name = "HFSelected_SvtxTrackMap";
 
   // Variables shared by every channel
-  KFPARTICLE::unused_cuts_setMotherPV_DCA_StdDev = 1000;
-  KFPARTICLE::unused_cuts_setMaximumTrackchi2nDOF = 1000;
-  KFPARTICLE::unused_cuts_setMaximumDaughterDCA_XY = 100;
-  KFPARTICLE::unused_cuts_setDecayLengthRange_XY_min = -10000;
+  unused_cuts_setMotherPV_DCA_StdDev = 1000;
+  unused_cuts_setMaximumTrackchi2nDOF = 1000;
+  unused_cuts_setMaximumDaughterDCA_XY = 100;
+  unused_cuts_setDecayLengthRange_XY_min = -10000;
 
   // Light flavor channels (K_S0)
-  KFPARTICLE::lf_cuts_setMinDIRA = -1.1;
-  KFPARTICLE::lf_cuts_setDecayLengthRange_min = -0.1;
-  KFPARTICLE::lf_cuts_setMinimumTrackPV_DCA = -1.;
-  KFPARTICLE::lf_cuts_setMinimumTrackPV_DCA_XY = -1000;
-  KFPARTICLE::lf_cuts_setMinTPChits = 5;
-  KFPARTICLE::lf_cuts_setMaximumVertexchi2nDOF = 200;
-  KFPARTICLE::lf_cuts_setMaximumDaughterDCA = 100;
+  lf_cuts_setMinDIRA = -1.1;
+  lf_cuts_setDecayLengthRange_min = -0.1;
+  lf_cuts_setMinimumTrackPV_DCA = -1.;
+  lf_cuts_setMinimumTrackPV_DCA_XY = -1000;
+  lf_cuts_setMinTPChits = 5;
+  lf_cuts_setMaximumVertexchi2nDOF = 200;
+  lf_cuts_setMaximumDaughterDCA = 100;
 
   // Heavy flavor channels (D0, D+, Ds+, Lambda_c+)
-  KFPARTICLE::hf_min_dira = -1.1;
-  KFPARTICLE::hf_min_flight_distance = -0.1;
-  KFPARTICLE::Lc_min_flight_distance = -0.1;
-  KFPARTICLE::hf_mother_PV_DCA = FLT_MAX;
-  KFPARTICLE::hf_daughter_PV_DCA = -1.;
-  KFPARTICLE::hf_daughter_PV_DCA_XY = -1000;
-  KFPARTICLE::hf_track_to_track_DCA = 100;
-  KFPARTICLE::hf_pT = 0.;
-  KFPARTICLE::hf_max_track_chi2nDOF = 1000;
-  KFPARTICLE::hf_max_vertex_chi2nDOF = 200;
-  KFPARTICLE::hf_max_daughter_DCA_XY = 100;
-  KFPARTICLE::hf_min_MVTX_hits = 0;
-  KFPARTICLE::hf_min_INTT_hits = 0;
-  KFPARTICLE::hf_min_TPC_hits = 5;
+  hf_min_dira = -1.1;
+  hf_min_flight_distance = -0.1;
+  Lc_min_flight_distance = -0.1;
+  hf_mother_PV_DCA = FLT_MAX;
+  hf_daughter_PV_DCA = -1.;
+  hf_daughter_PV_DCA_XY = -1000;
+  hf_track_to_track_DCA = 100;
+  hf_pT = 0.;
+  hf_max_track_chi2nDOF = 1000;
+  hf_max_vertex_chi2nDOF = 200;
+  hf_max_daughter_DCA_XY = 100;
+  hf_min_MVTX_hits = 0;
+  hf_min_INTT_hits = 0;
+  hf_min_TPC_hits = 5;
 
   // Ds+ is reconstructed through the phi intermediate in simulation, with no decay length or time requirement
   if (prefix == "D2KKpi")
   {
-    KFPARTICLE::KKpi_use_phi_intermediate = true;
-    KFPARTICLE::hf_min_flight_distance = -FLT_MAX;
-    KFPARTICLE::unused_cuts_setDecayLengthRange_XY_min = -FLT_MAX;
-    KFPARTICLE::unused_cuts_setDecayTimeRange_XY_min = -FLT_MAX;
-    KFPARTICLE::unused_cuts_setDecayTimeRange_min = -FLT_MAX;
+    KKpi_use_phi_intermediate = true;
+    hf_min_flight_distance = -FLT_MAX;
+    unused_cuts_setDecayLengthRange_XY_min = -FLT_MAX;
+    unused_cuts_setDecayTimeRange_XY_min = -FLT_MAX;
+    unused_cuts_setDecayTimeRange_min = -FLT_MAX;
   }
 }
 
